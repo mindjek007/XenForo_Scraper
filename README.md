@@ -223,225 +223,33 @@ python view_json.py
 
 ## Configuration
 
-### Using Multiple Domains
+### Multiple Forums
 
-The scraper automatically handles multiple XenForo forums:
+```bash
+python get_cookies.py
+```
+- **Option 1**: Add domain (Chrome login)
+- **Option 3**: View stored domains
+- **Option 4**: Test all cookies
 
-1. **Add cookies for each domain:**
-   ```bash
-   python get_cookies.py
-   ```
-   Choose option 1 and add cookies for each forum
-
-2. **View all stored domains:**
-   ```bash
-   python get_cookies.py
-   ```
-   Choose option 3
-
-3. **Test all cookies:**
-   ```bash
-   python get_cookies.py
-   ```
-   Choose option 4
-
-4. **Use quick_start.py:**
-   It will automatically detect the domain from any thread URL and load the correct cookies!
-
-### Custom Headers
+### Rate Limiting & Pages
 
 ```python
-scraper = XenforoScraper(
-    base_url='https://forum.com',
-    delay=2.0,
-    headers={
-        'User-Agent': 'Custom User Agent',
-        'Cookie': 'your_session_cookie'  # If authentication needed
-    }
-)
+scraper = XenforoScraper(base_url='https://forum.com', delay=2.5)
+
+# Scrape all pages (default)
+thread = scraper.scrape_thread(url)
+
+# Limit pages
+thread = scraper.scrape_thread(url, max_pages=5)
 ```
-
-### Scraping All Pages by Default
-
-```python
-# Scrape ALL pages (default behavior)
-thread = scraper.scrape_thread(thread_url)
-
-# Or limit to specific number
-thread = scraper.scrape_thread(thread_url, max_pages=5)
-```
-
-### Rate Limiting
-
-Adjust the `delay` parameter to control request frequency:
-
-```python
-scraper = XenforoScraper(
-    base_url='https://forum.com',
-    delay=2.5  # 2.5 seconds between requests
-)
-```
-
-## Limitations & Best Practices
-
-1. **Rate Limiting**: Always use appropriate delays to avoid overloading servers
-2. **Authentication**: Some forums require login to view content. You may need to add session cookies
-3. **Robots.txt**: Check the forum's robots.txt file and respect crawling rules
-4. **Terms of Service**: Ensure your use complies with the forum's terms of service
-5. **Private Content**: This scraper only works with publicly accessible content
-
-## Supported Forums
-
-This scraper works with any forum using XenForo CMS, including:
-- Community forums
-- Gaming forums
-- Tech forums
-- Fan forums
-- And many more!
-
-Simply change the `base_url` parameter to the target forum.
-
-## Troubleshooting
-
-### Issue: 403 Forbidden Error
-
-**This is the most common issue!** The forum is blocking automated requests.
-
-**Solution - Automated Cookie Extraction (Easiest):**
-
-1. Run the cookie manager:
-   ```bash
-   python get_cookies.py
-   ```
-
-2. Choose option 1 (automated):
-   - Enter the forum URL
-   - Chrome will open automatically
-   - Login to the forum
-   - Press Enter in terminal when done
-   - Cookies are automatically saved!
-
-3. Test your cookies:
-   ```bash
-   python get_cookies.py
-   ```
-   Choose option 4 to test all stored cookies
-
-4. Use quick_start.py:
-   ```bash
-   python quick_start.py
-   ```
-   It will automatically load the correct cookies for any domain!
-
-**Multiple Domains:**
-The cookie manager supports multiple XenForo forums in a single cookies.json file. Just repeat step 2 for each forum you want to scrape.
-
-### Issue: No posts found
-
-**Solution**: The forum might have a different HTML structure. Check the page source and adjust the CSS selectors in `scraper.py`.
-
-### Issue: Authentication required
-
-**Solution**: Some forums require login. Add session cookies to the headers (see 403 error solution above).
-
-### Issue: Rate limited by server
-
-**Solution**: Increase the delay between requests:
-
-```python
-scraper = XenforoScraper(base_url='https://forum.com', delay=5.0)
-```
-
-## Advanced Usage
-
-### Custom Post Processing
-
-```python
-def process_post(post):
-    """Custom processing for each post"""
-    # Extract specific data
-    if len(post.attachments) > 0:
-        print(f"Post has {len(post.attachments)} attachments")
-    
-    # Filter content
-    if 'keyword' in post.content.lower():
-        print(f"Found keyword in post by {post.author.username}")
-
-# Apply to all posts
-for post in thread.posts:
-    process_post(post)
-```
-
-### Download Attachments
-
-```python
-import requests
-import os
-
-def download_attachments(thread, output_dir='downloads'):
-    """Download all attachments from a thread"""
-    os.makedirs(output_dir, exist_ok=True)
-    
-    for post in thread.posts:
-        for att in post.attachments:
-            if att.file_type == 'image':
-                filename = f"{output_dir}/{att.filename}"
-                response = requests.get(att.url)
-                with open(filename, 'wb') as f:
-                    f.write(response.content)
-                print(f"Downloaded: {filename}")
-```
-
-### Filter Posts by Date
-
-```python
-from datetime import datetime
-
-def filter_posts_by_date(thread, start_date):
-    """Filter posts after a specific date"""
-    filtered_posts = []
-    for post in thread.posts:
-        try:
-            post_date = datetime.fromisoformat(post.date.replace('Z', '+00:00'))
-            if post_date >= start_date:
-                filtered_posts.append(post)
-        except:
-            pass
-    return filtered_posts
-
-# Usage
-start = datetime(2025, 7, 1)
-recent_posts = filter_posts_by_date(thread, start)
-```
-
-## API Reference
-
-### XenforoScraper Class
-
-#### `__init__(base_url, delay=1.0, headers=None)`
-Initialize the scraper with forum URL and settings.
-
-#### `scrape_thread(thread_url, max_pages=None)`
-Scrape a complete thread. Returns a `Thread` object.
-
-#### `scrape_forum_threads(forum_url, max_threads=None)`
-Get list of thread URLs from a forum page. Returns list of URLs.
-
-#### `export_thread_to_dict(thread)`
-Convert a Thread object to a dictionary for JSON export.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## Legal Notice
 
 This tool is for educational purposes. Always:
 - Respect the forum's Terms of Service
-- Follow robots.txt guidelines
 - Use appropriate rate limiting
 - Only scrape publicly available content
-- Respect copyright and intellectual property
 
 ## License
 
