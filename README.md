@@ -16,6 +16,16 @@ A Python scraper for extracting data from XenForo-based forums. This scraper wor
 - ✅ Rate limiting to respect server resources
 - ✅ Automated cookie extraction with Chrome
 - ✅ Built-in cookie testing for all domains
+- ✅ Automatic Selenium fallback for Cloudflare protection
+
+## Tested & Working Domains
+
+- ✅ simpcity.cr
+- ✅ nudostar.com
+- ✅ celebforum.to
+- ✅ leakedmodels.com
+
+**Note:** Works with Cloudflare normal protection. Does NOT work when site enables Cloudflare "Under Attack Mode" (requires manual CAPTCHA solving).
 
 ## Installation
 
