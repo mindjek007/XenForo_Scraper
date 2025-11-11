@@ -59,6 +59,17 @@ pip install -r requirements.txt
    - Press Enter to scrape **ALL pages** (or specify a number)
    - Data is automatically exported to JSON
 
+3. **Download media from JSON:**
+   ```bash
+   # Install downloader tools first
+   pip install cyberdrop-dl yt-dlp gallery-dl aria2
+
+   # Then download all media
+   python download_media.py downloads/344155/thread_344155.json
+   ```
+   - Auto-detects domains and uses appropriate tool
+   - Supports: cyberdrop, yt-dlp, gallery-dl, aria2c
+
 ### Basic Usage (Python Code)
 
 ```python

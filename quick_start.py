@@ -192,6 +192,12 @@ def main():
         print(f"{'='*70}")
         print(f"\nFile size: {os.path.getsize(output_file) / 1024:.2f} KB")
         
+        # Ask if user wants to download media
+        download = input("\nDownload media from this thread? (y/n): ").strip().lower()
+        if download == 'y':
+            print(f"\nRunning: python download_media.py {output_file}\n")
+            os.system(f"python download_media.py {output_file}")
+        
         # Ask if user wants to scrape another thread
         another = input("\nScrape another thread? (y/n): ").strip().lower()
         if another == 'y':

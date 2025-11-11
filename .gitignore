@@ -42,6 +42,7 @@ ENV/
 downloads/
 output/
 data/
+AppData/
 
 # Chrome profile data
 XenForo/

@@ -522,6 +522,13 @@ class XenforoScraper:
                     media_embeds = self._extract_media_embeds(content_elem) if content_elem else []
                     links = self._extract_links(content_elem) if content_elem else []
                     
+                    # Deduplicate: remove image_link entries that match attachment filenames
+                    attachment_filenames = {att.filename for att in attachments}
+                    links = [link for link in links if not (
+                        link.link_type == 'image_link' and 
+                        any(att_name in link.text for att_name in attachment_filenames)
+                    )]
+                    
                     # Extract date using patterns
                     date_elem = None
                     for date_selector in self.patterns['selectors'].get('date', ['time[datetime]']):
