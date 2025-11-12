@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 # Domain to tool mapping
 TOOLS = {
     "cyberdrop": ["gofile", "cyberdrop", "pixeldrain","jpg6.su", "jpg7.cr"],
-    "yt_dlp": ["gofile", "redgifs", "vk.com", "pornhub.com", "pornhub.org"],
+    "yt_dlp": ["gofile", "redgifs", "vk.com", "pornhub.com", "pornhub.org", "sendvid"],
     "gallery_dl": ["pixhost", "bunkr", "imgbox", "erome", "reddit.com", "redd.it", "saint"],
     "aria2c": ["streamtape", "phncdn.com", "fap.onl"],
 }
@@ -57,8 +57,20 @@ def save_download_history(history, history_file=".download_history.json"):
         print(f"⚠ Warning: Could not save history: {e}")
 
 def clean_url(url):
-    """Clean URL: replace .md. with . (for attachment links)."""
-    return url.replace(".md.", ".")
+    """Clean URL: replace .md. with . (for attachment links) and optimize image hosting URLs."""
+    url = url.replace(".md.", ".")
+    
+    domain = get_domain(url).lower()
+    
+    # Vipr domain optimization: replace /th/ with /i/ for full quality
+    if "vipr" in domain:
+        url = url.replace("/th/", "/i/")
+    
+    # Imagetwist domain optimization: replace /th/ with /i/ for full quality
+    if "imagetwist" in domain:
+        url = url.replace("/th/", "/i/")
+    
+    return url
 
 def get_tool_for_url(url):
     """Determine which tool to use for URL."""

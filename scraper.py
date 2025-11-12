@@ -31,6 +31,7 @@ class XenforoScraper:
         self.delay = delay
         self.session = requests.Session()
         self.patterns = patterns or self._get_default_patterns()
+        self.selenium_driver = None  # Reuse same browser instance
         
         # More realistic browser headers to avoid 403 errors
         self.headers = {
@@ -124,6 +125,7 @@ class XenforoScraper:
     def _get_page_with_selenium(self, url: str) -> Optional[BeautifulSoup]:
         """
         Fetch page using Selenium when Cloudflare blocks requests
+        Reuses same browser instance for efficiency
         
         Args:
             url: URL to fetch
@@ -140,60 +142,62 @@ class XenforoScraper:
             from selenium.webdriver.support import expected_conditions as EC
             from selenium.webdriver.common.by import By
             
-            print("  Starting Chrome browser...")
+            # Initialize Chrome driver on first use
+            if self.selenium_driver is None:
+                print("  🌐 Starting Chrome browser (will reuse for all pages)...")
+                
+                # Setup Chrome options
+                chrome_options = Options()
+                chrome_options.add_argument('--window-size=1920,1080')
+                chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+                chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+                chrome_options.add_experimental_option('useAutomationExtension', False)
+                chrome_options.add_argument(f'--user-agent={self.headers["User-Agent"]}')
+                
+                # Use Chrome profile from project folder (has logged-in sessions)
+                chrome_profile_dir = os.path.join(os.path.dirname(__file__), 'XenForo')
+                if os.path.exists(chrome_profile_dir):
+                    chrome_options.add_argument(f'--user-data-dir={chrome_profile_dir}')
+                    print("  ✓ Using saved Chrome profile with cookies...")
+                else:
+                    print("  ⚠ Chrome profile not found - Cloudflare may block")
+                
+                # Initialize driver
+                service = ChromeService(ChromeDriverManager().install())
+                self.selenium_driver = webdriver.Chrome(service=service, options=chrome_options)
+                
+                # Remove webdriver flag to avoid detection
+                self.selenium_driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
+                    'source': '''
+                        Object.defineProperty(navigator, 'webdriver', {
+                            get: () => undefined
+                        })
+                    '''
+                })
             
-            # Setup Chrome options
-            chrome_options = Options()
-            # Don't use headless - Cloudflare detects it
-            # chrome_options.add_argument('--headless=new')
-            chrome_options.add_argument('--window-size=1920,1080')
-            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-            chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
-            chrome_options.add_experimental_option('useAutomationExtension', False)
-            chrome_options.add_argument(f'--user-agent={self.headers["User-Agent"]}')
-            
-            # Use Chrome profile from project folder (has logged-in sessions)
-            chrome_profile_dir = os.path.join(os.path.dirname(__file__), 'XenForo')
-            if os.path.exists(chrome_profile_dir):
-                chrome_options.add_argument(f'--user-data-dir={chrome_profile_dir}')
-                print("  Using saved Chrome profile with cookies...")
-            else:
-                print("  ⚠ Chrome profile not found - Cloudflare may block")
-            
-            # Initialize driver
-            service = ChromeService(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            
-            # Remove webdriver flag to avoid detection
-            driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-                'source': '''
-                    Object.defineProperty(navigator, 'webdriver', {
-                        get: () => undefined
-                    })
-                '''
-            })
+            driver = self.selenium_driver
             
             # Navigate to page
-            print(f"  Loading: {url}")
+            print(f"  📄 Loading: {url}")
             driver.get(url)
             
             # Wait for Cloudflare challenge to complete (if present)
-            print("  Waiting for Cloudflare challenge...")
-            time.sleep(5)  # Wait for challenge
+            print("  ⏳ Waiting for page...")
+            time.sleep(3)  # Initial wait
             
             # Check if we're still on Cloudflare page
             if 'Just a moment' in driver.page_source or 'Checking your browser' in driver.page_source:
-                print("  ⏳ Cloudflare challenge detected, waiting...")
-                time.sleep(10)  # Wait longer for challenge to complete
+                print("  🔄 Cloudflare challenge detected, waiting...")
+                time.sleep(8)  # Wait longer for challenge to complete
             
             # Wait for page to load (wait for article.message or post content)
             try:
                 WebDriverWait(driver, 15).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "article.message, .message, .post"))
                 )
-                print("  ✓ Page loaded successfully with Selenium")
+                print("  ✓ Page loaded")
             except:
-                print("  ⚠ Timeout waiting for posts, checking if any content loaded...")
+                print("  ⚠ Timeout waiting for posts, checking content...")
             
             # Get page source and parse
             page_source = driver.page_source
@@ -207,18 +211,22 @@ class XenforoScraper:
                 print(f"     3. Enter: {self.base_url}")
                 print("     4. Login and wait for Cloudflare challenge to complete")
                 print("     5. Press ENTER to save fresh cookies\n")
-                driver.quit()
                 return None
-            
-            driver.quit()
             
             return BeautifulSoup(page_source, 'html.parser')
             
         except Exception as e:
             print(f"  ✗ Selenium error: {e}")
-            if 'driver' in locals():
-                driver.quit()
             return None
+    
+    def close_selenium_driver(self):
+        """Close the Selenium driver when done"""
+        if self.selenium_driver:
+            try:
+                self.selenium_driver.quit()
+                self.selenium_driver = None
+            except:
+                pass
     
     def _extract_user_from_element(self, user_element) -> Optional[User]:
         """Extract user information from a user element"""
@@ -816,6 +824,9 @@ class XenforoScraper:
         
         # Extract all social media links from posts
         thread.social_links = self._extract_social_links_from_posts(thread.posts)
+        
+        # Close Selenium driver if it was used
+        self.close_selenium_driver()
         
         return thread
     
